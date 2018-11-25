@@ -1,35 +1,33 @@
 package com.company;
 
-import javax.swing.text.html.HTML;
 import java.io.*;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
+import java.util.ArrayList;
+import java.util.List;
 
 public class CoverArt {
-	private String cantante;
-	private String cancion;
-	private String HTML_original;
+	private String AHREF = "<a href=\"/release/";
+	private String MUSICBRAINZ = "https://musicbrainz.org/";
+	private String IMAGEN_LARGE = "<a class=\"artwork-image\" href=";
+	private String IMAGEN_SMALL = "data-small-thumbnail=";
+	private String HTML_original = "";
+	private String web = "";
 	
-	private boolean full = false;
-	
-	public CoverArt() {
-		cantante = "ELTON JOHN";
-		cancion = "AQUI NO SE PUEDE VIVIR";
-		parse(cantante, cancion);
-		HTML_original = getURLSource("https://musicbrainz.org/release/b7931017-b24a-4c45-9c62-1173accf9d60");
-		if (HTML_original != null) {
-			full = true;
-		}
+	public CoverArt(String cantante, String cancion) {
+		web = "https://musicbrainz.org/taglookup?tag-lookup.artist=" +
+			             parse(cantante) + "&tag-lookup.release=&tag-lookup.tracknum=&tag-lookup.track=" +
+			             parse(cancion) + "&tag-lookup.duration=&tag-lookup.filename=";
+		HTML_original = getURLSource(web);
+		aHref();
 	}
 	
-	private void parse(String cant, String canc) {
-		cantante = cant.toLowerCase();
-		cancion = canc.toLowerCase();
-		
-		String cantante_trim = cantante.replace(" ", "%20");
-		
-		System.out.println(cantante_trim);
+	private String parse(String palabra) {
+		String resultado = palabra.toLowerCase();
+		resultado = resultado.replace(" ", "+");
+//		System.out.println(cantante_trim);
+		return resultado;
 	}
 	
 	private String getURLSource(String url) {
@@ -63,7 +61,99 @@ public class CoverArt {
 		return null;
 	}
 	
-	public boolean isFull() {
-		return full;
+	private void aHref() {
+		List<String> lista = new ArrayList();
+		
+		int begin = 0;
+		int ende = 0;
+		boolean encontrado = true;
+		
+		//Buscar enlace
+		for (int x = 1; x <= HTML_original.length()-18; x++) {
+			if (HTML_original.substring(x,x+18).equals(AHREF)) {
+				begin = x;
+				ende = x;
+				do {
+					if (HTML_original.substring(ende-2, ende).equals("\">")) {
+						encontrado = false;
+					}
+					ende++;
+				} while (encontrado);
+				encontrado = true;
+				lista.add(MUSICBRAINZ + HTML_original.substring(begin+9, ende-3));
+			}
+		}
+//		for(int i=0;i<lista.size();i++) {
+//			seguro("aHref", lista.get(i));
+//		}
+		coverBig(lista);
 	}
+	
+	//Buscar IMAGEN_SMALL
+	private void coverBig(List<String> lista) {
+		String big = "";
+		String small = "";
+		for (int i = 0; i < lista.size(); i++) {
+			HTML_original = getURLSource(lista.get(i));
+
+			
+			int begin = 0;
+			int ende = 0;
+			//<a class="artwork-image" href="//coverartarchive.org/release/ac36d9c9-1c56-4a60-81c3-81b13761a2f2/1619745496.jpg" title="">
+			// data-small-thumbnail="//coverartarchive.org/release/ac36d9c9-1c56-4a60-81c3-81b13761a2f2/1619745496-250.jpg" data-title
+			for (int x = 1; x <= HTML_original.length() - 30; x++) {
+				//System.out.println(HTML_original.substring(x, x+40));
+				if (HTML_original.substring(x, x + 30).equals(IMAGEN_LARGE)) {
+					begin = x;
+					ende = (x + 33);
+					
+					ende = find_end(ende);
+
+					System.out.println("http:/" + HTML_original.substring(begin + 32, ende - 2));
+					
+					small = coverSmall(begin);
+				}
+			}
+		}
+	}
+	
+	//Buscar IMAGEN_SMALL
+	private String coverSmall(int inicio) {
+		int begin = inicio;
+		int ende = 0;
+		String cadena = "";
+		boolean encontrado = true;
+		
+		for (int z = inicio; z <= HTML_original.length()-21; z++) {
+			if (HTML_original.substring(z,z+21).equals(IMAGEN_SMALL)) {
+				begin = z;
+				ende = (z+24);
+				
+				ende = find_end(ende);
+				
+				encontrado = true;
+				System.out.println("http:/" + HTML_original.substring(begin+22, ende-2));
+			}
+		}
+		
+		return cadena;
+	}
+	
+	private int find_end(int ende) {
+		boolean encontrado = true;
+		do {
+			if (HTML_original.substring(ende - 1, ende).equals("\"")) {
+				encontrado = false;
+			}
+			ende++;
+		} while (encontrado);
+		
+		return ende;
+	}
+	
+	//Enviar seguro(METODO, TEXTO)
+	private void seguro(String metodo, String dato) {
+		System.out.println("Metodo: " + metodo + ".\nDato: " + dato);
+	}
+	
 }
