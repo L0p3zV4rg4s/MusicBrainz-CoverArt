@@ -5,28 +5,44 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+
+/**
+ *   It will be search for this text on the web-site
+ *
+ *   <a class="artwork-image" href="//coverartarchive.org/release/ac36d9c9-1c56-4a60-81c3-81b13761a2f2/1619745496.jpg" title="">
+ *   data-small-thumbnail="//coverartarchive.org/release/ac36d9c9-1c56-4a60-81c3-81b13761a2f2/1619745496-250.jpg" data-title
+ */
 
 public class CoverArt {
 	private String AHREF = "<a href=\"/release/";
 	private String MUSICBRAINZ = "https://musicbrainz.org/";
 	private String IMAGEN_LARGE = "<a class=\"artwork-image\" href=";
 	private String IMAGEN_SMALL = "data-small-thumbnail=";
+	private String PAGINATION_FLAG = "<ul class=\"pagination\">";
+	private String SPAN_FLAG = "<span>…</span>";
 	private String HTML_original = "";
-	private String web = "";
+	private int totalPages = 0;
+	private int index = 0;
+	private int max = 0;
 	
-	public CoverArt(String cantante, String cancion) {
-		web = "https://musicbrainz.org/taglookup?tag-lookup.artist=" +
-			             parse(cantante) + "&tag-lookup.release=&tag-lookup.tracknum=&tag-lookup.track=" +
-			             parse(cancion) + "&tag-lookup.duration=&tag-lookup.filename=";
-		HTML_original = getURLSource(web);
-		aHref();
+	private String [] web = {
+		"https://musicbrainz.org/taglookup?tag-lookup.artist=",
+		"&tag-lookup.release=&tag-lookup.tracknum=&tag-lookup.track=",
+		"&tag-lookup.duration=&tag-lookup.filename=&page="
+	};
+	
+	public ArrayList<String> list_page = new ArrayList<>();
+	
+	public CoverArt() {
+	
 	}
 	
+	//Parse the "blank space" on Singer and Song to %20
 	private String parse(String palabra) {
-		String resultado = palabra.toLowerCase();
-		resultado = resultado.replace(" ", "+");
-//		System.out.println(cantante_trim);
+		String resultado = palabra.toLowerCase().trim();
+		resultado = resultado.replace(" ", "%20");
 		return resultado;
 	}
 	
@@ -61,68 +77,109 @@ public class CoverArt {
 		return null;
 	}
 	
-	private void aHref() {
-		List<String> lista = new ArrayList();
-		
+	public void aHref(String cantante, String cancion, int page) {
 		int begin = 0;
 		int ende = 0;
-		boolean encontrado = true;
+		boolean found = true;
 		
-		//Buscar enlace
-		for (int x = 1; x <= HTML_original.length()-18; x++) {
-			if (HTML_original.substring(x,x+18).equals(AHREF)) {
+		HTML_original = getURLSource(web[0] + parse(cantante) + web[1] + parse(cancion) + web[2]);
+		//Search for a link
+		for (int x = 1; x <= HTML_original.length() - 18; x++) {
+			if (HTML_original.substring(x, x + 18).equals(AHREF)) {
 				begin = x;
 				ende = x;
 				do {
-					if (HTML_original.substring(ende-2, ende).equals("\">")) {
-						encontrado = false;
+					if (HTML_original.substring(ende - 2, ende).equals("\">")) {
+						found = false;
 					}
 					ende++;
-				} while (encontrado);
-				encontrado = true;
-				lista.add(MUSICBRAINZ + HTML_original.substring(begin+9, ende-3));
+				} while (found);
+				found = true;
+				this.list_page.add(MUSICBRAINZ + HTML_original.substring(begin + 9, ende - 3));
 			}
 		}
-//		for(int i=0;i<lista.size();i++) {
-//			seguro("aHref", lista.get(i));
-//		}
-		coverBig(lista);
 	}
 	
-	//Buscar IMAGEN_SMALL
-	private void coverBig(List<String> lista) {
-		String big = "";
-		String small = "";
-		for (int i = 0; i < lista.size(); i++) {
-			HTML_original = getURLSource(lista.get(i));
-
-			
+//	private void getPageTotalHTML(int i, int m, String text_find) {
+//		/*
+//		 * Need to search for 2 Flags:
+//		 *      - <ul class="pagination">
+//		 *      - <span>…</span>
+//		 * If found, try to search the tag "> and get the number between, just like ">??????</a>
+//		 *
+//		 */
+//		if (HTML_original.substring(i, m).equals(SPAN_FLAG)) {
+//			//Flag <span>...</span> found
+//			boolean found = true;
+//			for (int x = i; x <= HTML_original.length() - 8; x++) {
+//				if (HTML_original.substring(x, x + 2).equals("\">")) {
+//					//Flag "> found
+//					index = x+2;
+//					max = index;
+//					do {
+//						if (HTML_original.substring(max, max+1).equals("<")) {
+//							found = false;
+//						}
+//						max++;
+//					} while (found);
+//					totalPages = Integer.valueOf(HTML_original.substring(index,max-1));
+//					return;
+//				}
+//			}
+//		} else {
+//			for (int x = i; x <= HTML_original.length() - m; x++) {
+//				if (HTML_original.substring(x, x + text_find.length()).equals(text_find)) {
+//					//Flag <ul class="pagination"> found
+//					index = x;
+//					max = x + text_find.length();
+//					System.out.println(index + " - " + max + " - " + HTML_original.substring(index, max));
+//					getPageTotalHTML(index, (index+text_find.length()), SPAN_FLAG);
+//					return;
+//				}
+//			}
+//		}
+//	}
+	
+	//Search IMAGEN_BIG
+	public void coverBig() {
+		List<PictureBigSmall> setList = new ArrayList<>();
+		System.out.println("INICIO: " + list_page.size());
+		
+		PictureBigSmall picLink = new PictureBigSmall();
+		
+		for (int i = 0; i < list_page.size(); i++) {
+			HTML_original = getURLSource(list_page.get(i));
 			int begin = 0;
 			int ende = 0;
-			//<a class="artwork-image" href="//coverartarchive.org/release/ac36d9c9-1c56-4a60-81c3-81b13761a2f2/1619745496.jpg" title="">
-			// data-small-thumbnail="//coverartarchive.org/release/ac36d9c9-1c56-4a60-81c3-81b13761a2f2/1619745496-250.jpg" data-title
 			for (int x = 1; x <= HTML_original.length() - 30; x++) {
-				//System.out.println(HTML_original.substring(x, x+40));
 				if (HTML_original.substring(x, x + 30).equals(IMAGEN_LARGE)) {
 					begin = x;
 					ende = (x + 33);
 					
 					ende = find_end(ende);
-
-					System.out.println("http:/" + HTML_original.substring(begin + 32, ende - 2));
 					
-					small = coverSmall(begin);
+					//Only add on List the first one.
+					//Need to create a object each one for each line
+					picLink.setBigPicLink("http:/" + HTML_original.substring(begin + 32, ende - 2));
+					picLink.setSmallPicLink(coverSmall(begin));
+					setList.add(picLink);
 				}
 			}
 		}
+		
+		System.out.println(setList.size());
+		
+		for (int i = 0; i < setList.size(); i++) {
+			System.out.println("BIG - " + setList.get(i).getBigPicLink());
+			System.out.println("SMALL - " + setList.get(i).getSmallPicLink());
+		}
 	}
 	
-	//Buscar IMAGEN_SMALL
+	//Search IMAGEN_SMALL
 	private String coverSmall(int inicio) {
 		int begin = inicio;
 		int ende = 0;
 		String cadena = "";
-		boolean encontrado = true;
 		
 		for (int z = inicio; z <= HTML_original.length()-21; z++) {
 			if (HTML_original.substring(z,z+21).equals(IMAGEN_SMALL)) {
@@ -131,11 +188,9 @@ public class CoverArt {
 				
 				ende = find_end(ende);
 				
-				encontrado = true;
-				System.out.println("http:/" + HTML_original.substring(begin+22, ende-2));
+				return "http:" + HTML_original.substring(begin+22, ende-2);
 			}
 		}
-		
 		return cadena;
 	}
 	
@@ -150,10 +205,4 @@ public class CoverArt {
 		
 		return ende;
 	}
-	
-	//Enviar seguro(METODO, TEXTO)
-	private void seguro(String metodo, String dato) {
-		System.out.println("Metodo: " + metodo + ".\nDato: " + dato);
-	}
-	
 }
