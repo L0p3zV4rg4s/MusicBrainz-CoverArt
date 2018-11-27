@@ -19,6 +19,10 @@ public class CoverArt {
 	private String IMAGEN_LARGE = "<a class=\"artwork-image\" href=";
 	private String IMAGEN_SMALL = "data-small-thumbnail=";
 	private String HTML_original = "";
+	private int coverFound = 0;
+	private boolean verbose = false;
+	private int textHelpingCount = 0;
+	
 	
 	private String [] web = {
 		"https://musicbrainz.org/taglookup?tag-lookup.artist=",
@@ -30,6 +34,10 @@ public class CoverArt {
 	
 	public CoverArt() {
 	
+	}
+	
+	public CoverArt(boolean verbose) {
+		this.verbose = verbose;
 	}
 	
 	private String parse(String palabra) {
@@ -77,9 +85,12 @@ public class CoverArt {
 		int begin = 0;
 		int ende = 0;
 		boolean found = true;
-		
-		HTML_original = getURLSource(web[0] + parse(cantante) + web[1] + parse(cancion) + web[2]);
+		if (verbose)
+			getMessage("Downloading the source code from the Website.");
+		HTML_original = getURLSource(web[0] + parse(cantante) + web[1] + parse(cancion) + web[2] + page);
 		//A loop to search the flag AHREF
+		if (verbose)
+			getMessage("Searching for Tags on HTML.");
 		for (int x = 1; x <= HTML_original.length() - 18; x++) {
 			if (HTML_original.substring(x, x + 18).equals(AHREF)) {
 				begin = x;
@@ -92,35 +103,66 @@ public class CoverArt {
 				} while (found);
 				found = true;
 				list_page.add(MUSICBRAINZ + HTML_original.substring(begin + 9, ende - 3));
+				textHelpingCount++;
 			}
 		}
+		if (textHelpingCount > 1 && verbose)
+			getMessage("Found " + textHelpingCount + " links with possible Cover Art.");
+			
+		if (textHelpingCount < 1) {
+			getMessage("Something goes wrong.");
+		}
+	}
+	
+	private void getMessage(String text) {
+		System.out.println(text);
 	}
 	
 	//Search IMAGEN_BIG
 	public PictureBigSmall coverBig() {
-		/**
-		 * Add into the object PictureBigSmall the value of the Big Picture and Small picture
-		 */
-		PictureBigSmall picLink = new PictureBigSmall(list_page.size()*2); //Per HTML-link will be 2 picture-link
-		
-		for (int i = 0; i < list_page.size(); i++) {
-			HTML_original = getURLSource(list_page.get(i));
-			int begin = 0;
-			int ende = 0;
-			for (int x = 1; x <= HTML_original.length() - 30; x++) {
-				if (HTML_original.substring(x, x + 30).equals(IMAGEN_LARGE)) {
-					begin = x;
-					ende = (x + 33);
-					//Find the last part of the link.
-					ende = find_end(ende);
-					//Set the link of the Big Picture into the Object PictureBigSmall
-					picLink.setPicLink("http:/" + HTML_original.substring(begin + 32, ende - 2));
-					//Set the link of the Big Picture into the Object PictureBigSmall
-					picLink.setPicLink(coverSmall(begin));
+		if (textHelpingCount < 1) {
+			getMessage("Check the page number.");
+		} else {
+			/**
+			 * Add into the object PictureBigSmall the value of the Big Picture and Small picture
+			 */
+			boolean find; //Flag to know if i found the Cover Art, if not and on verbose mode, it show a message
+			PictureBigSmall picLink = new PictureBigSmall(list_page.size() * 2); //Per HTML-link will be 2 picture-link
+			
+			for (int i = 0; i < list_page.size(); i++) {
+				find = false;
+				HTML_original = getURLSource(list_page.get(i));
+				int begin = 0;
+				int ende = 0;
+				for (int x = 1; x <= HTML_original.length() - 30; x++) {
+					if (HTML_original.substring(x, x + 30).equals(IMAGEN_LARGE)) {
+						begin = x;
+						ende = (x + 33);
+						//Find the last part of the link.
+						ende = find_end(ende);
+						//Set the link of the Big Picture into the Object PictureBigSmall
+						picLink.setPicLink("http:/" + HTML_original.substring(begin + 32, ende - 2));
+						coverFound++;
+						//Set the link of the Big Picture into the Object PictureBigSmall
+						picLink.setPicLink(coverSmall(begin));
+						find = true;
+					}
+				}
+				if (find == false) {
+					if (verbose)
+						getMessage("Cover Art not found on: " + list_page.get(i));
+					
+					//ToDo: add here to find on amazon website. Only as a BIG Cover Art
+					
 				}
 			}
+			if (verbose)
+				getMessage("All Cover Art (" + coverFound + ") saved.");
+			return picLink;
 		}
-		return picLink;
+		
+		getMessage("Page not found !!!");
+		return null;
 	}
 	
 	//Search IMAGEN_SMALL
@@ -138,10 +180,12 @@ public class CoverArt {
 				ende = (z+24);
 				
 				ende = find_end(ende);
-				
+				coverFound++;
 				return "http:" + HTML_original.substring(begin+22, ende-2);
 			}
 		}
+		if (verbose)
+			getMessage("Something goes wrong. No Small CoverArt found.");
 		return cadena;
 	}
 	
@@ -159,52 +203,4 @@ public class CoverArt {
 		} while (encontrado);
 		return ende;
 	}
-	
-	//	private void getPageTotalHTML(int i, int m, String text_find) {
-	/**
-	 * Find the total pages of MUSICBRAINZ
-	 *
-	 * Need to search for 2 Flags:
-	 *      - <ul class="pagination">
-	 *      - <span>…</span>
-	 * If found, try to search the tag "> and get the number between, just like ">??????</a>
-	 *
-	 */
-//		String PAGINATION_FLAG = "<ul class=\"pagination\">";
-//		String SPAN_FLAG = "<span>…</span>";
-//		int totalPages = 0;
-//		int index = 0;
-//		int max = 0;
-
-//		if (HTML_original.substring(i, m).equals(SPAN_FLAG)) {
-//			//Flag <span>...</span> found
-//			boolean found = true;
-//			for (int x = i; x <= HTML_original.length() - 8; x++) {
-//				if (HTML_original.substring(x, x + 2).equals("\">")) {
-//					//Flag "> found
-//					index = x+2;
-//					max = index;
-//					do {
-//						if (HTML_original.substring(max, max+1).equals("<")) {
-//							found = false;
-//						}
-//						max++;
-//					} while (found);
-//					totalPages = Integer.valueOf(HTML_original.substring(index,max-1));
-//					return;
-//				}
-//			}
-//		} else {
-//			for (int x = i; x <= HTML_original.length() - m; x++) {
-//				if (HTML_original.substring(x, x + text_find.length()).equals(text_find)) {
-//					//Flag <ul class="pagination"> found
-//					index = x;
-//					max = x + text_find.length();
-//					System.out.println(index + " - " + max + " - " + HTML_original.substring(index, max));
-//					getPageTotalHTML(index, (index+text_find.length()), SPAN_FLAG);
-//					return;
-//				}
-//			}
-//		}
-//	}
 }
