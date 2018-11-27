@@ -6,18 +6,24 @@ import java.util.List;
 public class Main {
 
     public static void main(String[] args) {
-    	int page = 1;
-        CoverArt portadas = new CoverArt();
+	    /**
+	     * new CoverArt() - Silently search on Website
+	     * new CoverArt(true) - Verbose while searching
+	     */
+	    String singer = "Madonna";
+	    String song = "Papa dont't preach";
+        CoverArt portadas = new CoverArt(true);
         
-        portadas.aHref("Michael Jackson", "Thriller", page);
+        portadas.aHref(singer, song, 1);
 	
         PictureBigSmall myPicture =  portadas.coverBig();
 	
 	    /**
-	     * Test: get the String from getAllPicture()
-	     *
-	     * ToDo: save the String into a HTML file, and open it.
+	     * Optional: save the String into a HTML file, and open it.
 	     */
-	    System.out.println(myPicture.getAllPictureHtml("Michael Jackson", "Thriller"));
+	    
+	    //For prevent a null obj
+	    if (myPicture != null)
+	        System.out.println(myPicture.getAllPictureHtml(singer, song));
     }
 }
