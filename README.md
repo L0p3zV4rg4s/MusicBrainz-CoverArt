@@ -27,17 +27,19 @@ Features:
 ## Example
 
 ```java
+String singer = "Michael Jackson";
+String song = "Thriller";
 //Search verbose mode - False silently mode
 CoverArt myCover = new CoverArt(true);     
 
 //Search on page 1, for more pages, please call method aHref again
-myCover.aHref("Michael Jackson", "Thriller", 1); 
+myCover.aHref(singer, song, 1); 
 
 PictureBigSmall myPic =  myCover.coverBig();
 
 if (myPic != null) //To prevent a null myPic obj
-    System.out.println(myPic.getAllPictureHtml("Michael Jackson", "Thriller")); //Optional
+    System.out.println(myPic.getAllPictureHtml(singer, song)); //Output optional
     
 /**
-* Another option: save the output *getAllPicture(...)* on a file
+* Another option: save the output getAllPicture(...) on a HTML file
 */
