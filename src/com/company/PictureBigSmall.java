@@ -3,9 +3,6 @@ package com.company;
 public class PictureBigSmall {
 	/**
 	 * An object to save the link of CoverArt in BIG and SMALL format
-	 *
-	 * ToDo: option verbose=true/false, get some information while it searching for the links
-	 *
 	 */
 	private String [] combo;
 	
@@ -31,10 +28,6 @@ public class PictureBigSmall {
 		return "No cover Art found";
 	}
 	
-	public int getSizeCombo() {
-		return combo.length;
-	}
-	
 	public String getAllPictureHtml(String singer, String song) {
 		/**
 		 * Return the list on a HTML simple format
@@ -42,13 +35,17 @@ public class PictureBigSmall {
 		String html = "";
 		boolean go_on = true;
 		int add = 0;
-		html = "<HTML><HEAD></HEAD><TITLE>" + singer + " - " + song +
-				       "</TITLE><BODY><h1>" + singer + "</h1><p><h2>" + song + "</h2></p><p>";
+		html = "<HTML><HEAD>" +
+				       "<style>body{background-color: #333333;}h1{color: white;text-align: center;}h2{color: lightgray;text-align: center;}</style>" +
+				       "</HEAD><TITLE>" + singer + " - " + song +
+				       "</TITLE><BODY><h1>Singer: " + singer + "</h1><p><h2>Song: " + song + "</h2></p><p></p>";
 		
 		do {
 			html = html + "<a href=\"" + getPicLink(add) + "\"><img src=\"" + getPicLink(add+1) + "\" height=\"200\" width=\"200\"></a>";
 			add += 2;
 		} while (add <= getCount());
+		
+		html = html + "</body></html>";
 		return html;
 	}
 }
