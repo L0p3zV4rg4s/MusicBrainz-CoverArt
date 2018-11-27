@@ -5,11 +5,9 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
 
 /**
- *   It will be search for this text on the web-site
+ *   It will be search the follow text on the web-site
  *
  *   <a class="artwork-image" href="//coverartarchive.org/release/ac36d9c9-1c56-4a60-81c3-81b13761a2f2/1619745496.jpg" title="">
  *   data-small-thumbnail="//coverartarchive.org/release/ac36d9c9-1c56-4a60-81c3-81b13761a2f2/1619745496-250.jpg" data-title
@@ -20,12 +18,7 @@ public class CoverArt {
 	private String MUSICBRAINZ = "https://musicbrainz.org/";
 	private String IMAGEN_LARGE = "<a class=\"artwork-image\" href=";
 	private String IMAGEN_SMALL = "data-small-thumbnail=";
-	private String PAGINATION_FLAG = "<ul class=\"pagination\">";
-	private String SPAN_FLAG = "<span>…</span>";
 	private String HTML_original = "";
-	private int totalPages = 0;
-	private int index = 0;
-	private int max = 0;
 	
 	private String [] web = {
 		"https://musicbrainz.org/taglookup?tag-lookup.artist=",
@@ -39,8 +32,8 @@ public class CoverArt {
 	
 	}
 	
-	//Parse the "blank space" on Singer and Song to %20
 	private String parse(String palabra) {
+		//Parse the "blank space" on "%20"
 		String resultado = palabra.toLowerCase().trim();
 		resultado = resultado.replace(" ", "%20");
 		return resultado;
@@ -78,12 +71,15 @@ public class CoverArt {
 	}
 	
 	public void aHref(String cantante, String cancion, int page) {
+		/**
+		 * Add in ArrayList list_page the WebSite to search the CoverArt
+		 */
 		int begin = 0;
 		int ende = 0;
 		boolean found = true;
 		
 		HTML_original = getURLSource(web[0] + parse(cantante) + web[1] + parse(cancion) + web[2]);
-		//Search for a link
+		//A loop to search the flag AHREF
 		for (int x = 1; x <= HTML_original.length() - 18; x++) {
 			if (HTML_original.substring(x, x + 18).equals(AHREF)) {
 				begin = x;
@@ -95,19 +91,91 @@ public class CoverArt {
 					ende++;
 				} while (found);
 				found = true;
-				this.list_page.add(MUSICBRAINZ + HTML_original.substring(begin + 9, ende - 3));
+				list_page.add(MUSICBRAINZ + HTML_original.substring(begin + 9, ende - 3));
 			}
 		}
 	}
 	
-//	private void getPageTotalHTML(int i, int m, String text_find) {
-//		/*
-//		 * Need to search for 2 Flags:
-//		 *      - <ul class="pagination">
-//		 *      - <span>…</span>
-//		 * If found, try to search the tag "> and get the number between, just like ">??????</a>
-//		 *
-//		 */
+	//Search IMAGEN_BIG
+	public PictureBigSmall coverBig() {
+		/**
+		 * Add into the object PictureBigSmall the value of the Big Picture and Small picture
+		 */
+		PictureBigSmall picLink = new PictureBigSmall(list_page.size()*2); //Per HTML-link will be 2 picture-link
+		
+		for (int i = 0; i < list_page.size(); i++) {
+			HTML_original = getURLSource(list_page.get(i));
+			int begin = 0;
+			int ende = 0;
+			for (int x = 1; x <= HTML_original.length() - 30; x++) {
+				if (HTML_original.substring(x, x + 30).equals(IMAGEN_LARGE)) {
+					begin = x;
+					ende = (x + 33);
+					//Find the last part of the link.
+					ende = find_end(ende);
+					//Set the link of the Big Picture into the Object PictureBigSmall
+					picLink.setPicLink("http:/" + HTML_original.substring(begin + 32, ende - 2));
+					//Set the link of the Big Picture into the Object PictureBigSmall
+					picLink.setPicLink(coverSmall(begin));
+				}
+			}
+		}
+		return picLink;
+	}
+	
+	//Search IMAGEN_SMALL
+	private String coverSmall(int inicio) {
+		/**
+		 * Return back to coverBig() a String with the link of the Small Picture format
+		 */
+		int begin = 0; //= inicio;
+		int ende = 0;
+		String cadena = "";
+		
+		for (int z = inicio; z <= HTML_original.length()-21; z++) {
+			if (HTML_original.substring(z,z+21).equals(IMAGEN_SMALL)) {
+				begin = z;
+				ende = (z+24);
+				
+				ende = find_end(ende);
+				
+				return "http:" + HTML_original.substring(begin+22, ende-2);
+			}
+		}
+		return cadena;
+	}
+	
+	private int find_end(int ende) {
+		/**
+		 * Find the last part of the link. In this case will be like:
+		 * .................xxxxxxx.jpg
+		 */
+		boolean encontrado = true;
+		do {
+			if (HTML_original.substring(ende - 1, ende).equals("\"")) {
+				encontrado = false;
+			}
+			ende++;
+		} while (encontrado);
+		return ende;
+	}
+	
+	//	private void getPageTotalHTML(int i, int m, String text_find) {
+	/**
+	 * Find the total pages of MUSICBRAINZ
+	 *
+	 * Need to search for 2 Flags:
+	 *      - <ul class="pagination">
+	 *      - <span>…</span>
+	 * If found, try to search the tag "> and get the number between, just like ">??????</a>
+	 *
+	 */
+//		String PAGINATION_FLAG = "<ul class=\"pagination\">";
+//		String SPAN_FLAG = "<span>…</span>";
+//		int totalPages = 0;
+//		int index = 0;
+//		int max = 0;
+
 //		if (HTML_original.substring(i, m).equals(SPAN_FLAG)) {
 //			//Flag <span>...</span> found
 //			boolean found = true;
@@ -139,70 +207,4 @@ public class CoverArt {
 //			}
 //		}
 //	}
-	
-	//Search IMAGEN_BIG
-	public void coverBig() {
-		List<PictureBigSmall> setList = new ArrayList<>();
-		System.out.println("INICIO: " + list_page.size());
-		
-		PictureBigSmall picLink = new PictureBigSmall();
-		
-		for (int i = 0; i < list_page.size(); i++) {
-			HTML_original = getURLSource(list_page.get(i));
-			int begin = 0;
-			int ende = 0;
-			for (int x = 1; x <= HTML_original.length() - 30; x++) {
-				if (HTML_original.substring(x, x + 30).equals(IMAGEN_LARGE)) {
-					begin = x;
-					ende = (x + 33);
-					
-					ende = find_end(ende);
-					
-					//Only add on List the first one.
-					//Need to create a object each one for each line
-					picLink.setBigPicLink("http:/" + HTML_original.substring(begin + 32, ende - 2));
-					picLink.setSmallPicLink(coverSmall(begin));
-					setList.add(picLink);
-				}
-			}
-		}
-		
-		System.out.println(setList.size());
-		
-		for (int i = 0; i < setList.size(); i++) {
-			System.out.println("BIG - " + setList.get(i).getBigPicLink());
-			System.out.println("SMALL - " + setList.get(i).getSmallPicLink());
-		}
-	}
-	
-	//Search IMAGEN_SMALL
-	private String coverSmall(int inicio) {
-		int begin = inicio;
-		int ende = 0;
-		String cadena = "";
-		
-		for (int z = inicio; z <= HTML_original.length()-21; z++) {
-			if (HTML_original.substring(z,z+21).equals(IMAGEN_SMALL)) {
-				begin = z;
-				ende = (z+24);
-				
-				ende = find_end(ende);
-				
-				return "http:" + HTML_original.substring(begin+22, ende-2);
-			}
-		}
-		return cadena;
-	}
-	
-	private int find_end(int ende) {
-		boolean encontrado = true;
-		do {
-			if (HTML_original.substring(ende - 1, ende).equals("\"")) {
-				encontrado = false;
-			}
-			ende++;
-		} while (encontrado);
-		
-		return ende;
-	}
 }

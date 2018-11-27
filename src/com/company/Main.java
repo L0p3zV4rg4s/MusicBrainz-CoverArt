@@ -9,9 +9,15 @@ public class Main {
     	int page = 1;
         CoverArt portadas = new CoverArt();
         
-        //If page = 0, then will search in all pages from artist
         portadas.aHref("Michael Jackson", "Thriller", page);
 	
-        portadas.coverBig();
+        PictureBigSmall myPicture =  portadas.coverBig();
+	
+	    /**
+	     * Test: get the String from getAllPicture()
+	     *
+	     * ToDo: save the String into a HTML file, and open it.
+	     */
+	    System.out.println(myPicture.getAllPictureHtml("Michael Jackson", "Thriller"));
     }
 }
